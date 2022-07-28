@@ -60,8 +60,8 @@ namespace CVROSC
                         {
                             if (f != Parameter.value)
                             {
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
                                 Parameter.value = (float)f;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
                                 continue;
                             }
                         }
@@ -70,9 +70,9 @@ namespace CVROSC
                         if (i != null)
                         {
                             if (i != (int)Parameter.value)
-                            {
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
+                            {                              
                                 Parameter.value = (float)i;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
                                 continue;
                             }
                         }
@@ -82,8 +82,8 @@ namespace CVROSC
                         {
                             if (b != (Parameter.value == 1f))
                             {
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
                                 Parameter.value = Convert.ToSingle(b);
+                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
                                 continue;
                             }
                         }
