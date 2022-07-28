@@ -1,7 +1,7 @@
 # CVROSC
-## Melon mod that implements Open Sound Control in ChilloutVR
+Melon mod that implements Open Sound Control in ChilloutVR!
 
-<br />
+https://user-images.githubusercontent.com/11065274/181604773-c77f6103-e69a-4881-8e92-abe516b521e2.mp4
 
 ### Why?
 Why not! Could be useful for people moving away from VRChat.
