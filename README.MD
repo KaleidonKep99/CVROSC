@@ -14,3 +14,8 @@ I use OSC myself to display the weather on my wrist. *(And to show it to others 
 - UnityEngine.CoreModule *(from ChilloutVR's directory)*
 - MelonLoader *(come on)*
 - Bespoke.OSC *(https://bitbucket.org/pvarcholik/bespoke.osc)*
+
+### Developer note
+This mod is not supported by ABI and nor me nor the mod are in any way affiliated to the company.
+
+If you're spooked easily from mods, then don't use it! lol

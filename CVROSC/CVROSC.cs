@@ -99,44 +99,66 @@ namespace CVROSC
             }
         }
 
-        static void AnalyzeData(object sender, IPEndPoint Source, string Address, IList<object> Data, Type Dummy)
+        static void SetParameter(string Address, object Data)
         {
-            if (sender == null || !Address.Contains("/avatar/parameters")) return;
-
-            Type DataType = Data[0].GetType();
-            switch (Type.GetTypeCode(DataType))
+            switch (Data)
             {
-                case TypeCode.Boolean:
-                case TypeCode.Single:
-                case TypeCode.Int32:
+                case bool b:
+                case int i:
+                case float f:
+                    string Variable = Address.Substring(Address.LastIndexOf("/") + 1);
+                    // MelonLogger.Msg("Received message {0} with data {1}! ({2})", Variable, Data[0], Address);
+
+                    foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
+                    {
+                        if (Parameter.name.Equals(Variable))
+                        {
+                            Parameter.value = (float)Data;
+                            AnimatorManager.SetAnimatorParameter(Parameter.name, Parameter.value);
+                        }
+                    }
                     break;
 
                 default:
-                    MelonLogger.Error("Received unsupported message at address {0} of type {1}, with value {1}.", Address, DataType, Data[0]);
+                    MelonLogger.Error("Received unsupported message at address {0} of type {1}, with value {1}.",
+                        Address, Data.GetType(), Data);
                     return;
             }
+        }
 
-            string Variable = Address.Substring(Address.LastIndexOf("/") + 1);
-            // MelonLogger.Msg("Received message {0} with data {1}! ({2})", Variable, Data[0], Address);
+        static void AnalyzeData(object sender, IPEndPoint Source, string Address, object Data)
+        {
+            if (sender == null || !Address.Contains("/avatar/parameters")) return;
 
-            foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
+            switch (Data)
             {
-                if (Parameter.name.Equals(Variable))
-                {
-                    Parameter.value = (float)Data[0];
-                    AnimatorManager.SetAnimatorParameter(Variable, Parameter.value);
-                }
-            }            
+                case OscBundle OSCB:
+                    foreach (OscBundle bOSCB in OSCB.Bundles)
+                        AnalyzeData(sender, Source, Address, bOSCB);
+
+                    foreach (OscMessage bOSCM in OSCB.Messages)
+                        SetParameter(Address, bOSCM.Data[0]);
+
+                    break;
+
+                case OscMessage OSCM:
+                    SetParameter(Address, OSCM.Data[0]);
+                    break;
+
+                default:
+                    MelonLogger.Error("Received unsupported packet at address {0}.", Address);
+                    return;
+            }       
         }
 
         static void BundleF(object sender, OscBundleReceivedEventArgs Var)
         {
-            AnalyzeData(sender, Var.Bundle.SourceEndPoint, Var.Bundle.Address, Var.Bundle.Data, Var.GetType());
+            AnalyzeData(sender, Var.Bundle.SourceEndPoint, Var.Bundle.Address, Var.Bundle);
         }
 
         static void MessageF(object sender, OscMessageReceivedEventArgs Var)
         {
-            AnalyzeData(sender, Var.Message.SourceEndPoint, Var.Message.Address, Var.Message.Data, Var.GetType());
+            AnalyzeData(sender, Var.Message.SourceEndPoint, Var.Message.Address, Var.Message);
         }
     }
 }
