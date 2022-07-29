@@ -32,7 +32,8 @@ namespace CVROSC
             {
                 if (TAL != PlayerSetup.Instance.timeAvatarLoaded || AnimatorManager == null)
                 {
-                    MelonLogger.Msg(String.Format("Avatar change detected, loading animation manager... (OT{0}, NT{1})", TAL, PlayerSetup.Instance.timeAvatarLoaded));
+                    if (TAL != PlayerSetup.Instance.timeAvatarLoaded)
+                        MelonLogger.Msg(String.Format("Avatar change detected, loading animation manager... (OT{0}, NT{1})", TAL, PlayerSetup.Instance.timeAvatarLoaded));
 
                     if (AnimatorManager == null)
                         AnimatorManager = PlayerSetup.Instance.animatorManager;
@@ -95,7 +96,6 @@ namespace CVROSC
                 // Ignore until we find a valid avatar
                 AnimatorManager = null;
                 Parameters = null;
-                System.Threading.Thread.Sleep(500);
             }
         }
 
