@@ -1,6 +1,7 @@
 ﻿using ABI.CCK.Scripts;
 using ABI_RC.Core;
 using ABI_RC.Core.Player;
+using ABI_RC.Core.Savior;
 using Bespoke.Osc;
 using MelonLoader;
 using System;
@@ -15,6 +16,7 @@ namespace CVROSC
 
         const string Base = "/avatar/parameters";
         static float TAL = -1.0f;
+        static string AvatarGUID = "0";
         static CVRAnimatorManager AnimatorManager = null;
         static List<CVRAdvancedSettingsFileProfileValue> Parameters = null;
 
@@ -40,16 +42,21 @@ namespace CVROSC
 
                     Parameters = AnimatorManager.GetAdditionalSettingsCurrent();
                     TAL = PlayerSetup.Instance.timeAvatarLoaded;
+                    AvatarGUID = MetaPort.Instance.currentAvatarGuid;
 
                     MelonLogger.Msg(String.Format("Animation manager found and cached, {0} parameters found!", Parameters.Count));
 
-                    MelonLogger.Msg(String.Format("Scanning parameters for {0}...", PlayerSetup.Instance._avatar.GetHashCode()));
-                    foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
-                        MelonLogger.Msg(String.Format("Parameter {0}: {1}", Parameter.name, Parameter.value));
+                    if (Parameters.Count > 0)
+                    {
+                        MelonLogger.Msg(String.Format("Scanning parameters for {0}...", AvatarGUID));
 
-                    MelonLogger.Msg("The new animation manager is now ready to be controlled through Open Sound Control.");
+                        foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
+                            MelonLogger.Msg(String.Format("Parameter {0}: {1}", Parameter.name, Parameter.value));
 
-                    OSCServer.SendMsg("/avatar/change", OSCServer.VRClient, PlayerSetup.Instance._avatar.GetHashCode(), true);
+                        MelonLogger.Msg("The new animation manager is now ready to be controlled through Open Sound Control.");
+                    }
+
+                    OSCServer.SendMsg("/avatar/change", OSCServer.VRClient, AvatarGUID, true);
                 }
 
                 if (AnimatorManager != null && Parameters != null)
