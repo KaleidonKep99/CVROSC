@@ -106,38 +106,41 @@ namespace CVROSC
                 case bool b:
                 case int i:
                 case float f:
-                    string Variable = Address.Substring(Address.LastIndexOf("/") + 1);
-                    // MelonLogger.Msg("Received message {0} with data {1}! ({2})", Variable, Data[0], Address);
-
-                    foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
+                    if (Address.StartsWith("/avatar/parameters"))
                     {
-                        if (Parameter.name.Equals(Variable))
+                        string Variable = Address.Substring(Address.LastIndexOf("/") + 1);
+                        // MelonLogger.Msg("Received message {0} with data {1}! ({2})", Variable, Data[0], Address);
+
+                        foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
                         {
-                            Parameter.value = (float)Data;
-                            AnimatorManager.SetAnimatorParameter(Parameter.name, Parameter.value);
-                        }
+                            if (Parameter.name.Equals(Variable))
+                            {
+                                Parameter.value = (float)Data;
+                                AnimatorManager.SetAnimatorParameter(Parameter.name, Parameter.value);
+                            }
+                        }              
                     }
                     break;
 
                 default:
-                    MelonLogger.Error("Received unsupported message at address {0} of type {1}, with value {1}.",
-                        Address, Data.GetType(), Data);
+                    MelonLogger.Error("Received unsupported message at address {0} of type {1}, with value {2}.",
+                        Address, Data.GetType().Name, Data);
                     return;
             }
         }
 
         static void AnalyzeData(object sender, IPEndPoint Source, string Address, object Data)
         {
-            if (sender == null || !Address.Contains("/avatar/parameters")) return;
+            if (sender == null) return;
 
             switch (Data)
             {
                 case OscBundle OSCB:
-                    foreach (OscBundle bOSCB in OSCB.Bundles)
-                        AnalyzeData(sender, Source, Address, bOSCB);
-
                     foreach (OscMessage bOSCM in OSCB.Messages)
                         SetParameter(Address, bOSCM.Data[0]);
+
+                    foreach (OscBundle bOSCB in OSCB.Bundles)
+                        AnalyzeData(sender, Source, Address, bOSCB);
 
                     break;
 
@@ -146,7 +149,7 @@ namespace CVROSC
                     break;
 
                 default:
-                    MelonLogger.Error("Received unsupported packet at address {0}.", Address);
+                    MelonLogger.Error("Received unsupported packet at address {0}!", Address);
                     return;
             }       
         }

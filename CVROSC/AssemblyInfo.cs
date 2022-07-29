@@ -1,5 +1,6 @@
 ﻿using MelonLoader;
 using CVROSC;
+using System.Reflection;
 
-[assembly: MelonInfo(typeof(CVROSCMod), "CVROSC", "1.0", "bribi#5940")]
+[assembly: MelonInfo(typeof(CVROSCMod), "CVROSC", "1.3", "bribi#5940")]
 [assembly: MelonGame("Alpha Blend Interactive", "ChilloutVR")]
