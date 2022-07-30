@@ -1,5 +1,6 @@
 ﻿using ABI.CCK.Scripts;
 using ABI_RC.Core;
+using ABI_RC.Core.InteractionSystem;
 using ABI_RC.Core.Player;
 using ABI_RC.Core.Savior;
 using Bespoke.Osc;
@@ -17,6 +18,7 @@ namespace CVROSC
         const string Base = "/avatar/parameters";
         static float TAL = -1.0f;
         static string AvatarGUID = "0";
+        static ViewManager MenuInstance = null;
         static CVRAnimatorManager AnimatorManager = null;
         static List<CVRAdvancedSettingsFileProfileValue> Parameters = null;
 
@@ -40,7 +42,11 @@ namespace CVROSC
                     if (AnimatorManager == null)
                         AnimatorManager = PlayerSetup.Instance.animatorManager;
 
+                    if (MenuInstance == null)
+                        MenuInstance = ViewManager.Instance;
+
                     Parameters = AnimatorManager.GetAdditionalSettingsCurrent();
+
                     TAL = PlayerSetup.Instance.timeAvatarLoaded;
                     AvatarGUID = MetaPort.Instance.currentAvatarGuid;
 
@@ -61,37 +67,37 @@ namespace CVROSC
 
                 if (AnimatorManager != null && Parameters != null)
                 {
-                    foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
+                    for (int j = 0; j < Parameters.Count; j++)
                     {
-                        float? f = AnimatorManager.GetAnimatorParameterFloat(Parameter.name);
+                        float? f = AnimatorManager.GetAnimatorParameterFloat(Parameters[j].name);
                         if (f != null)
                         {
-                            if (f != Parameter.value)
+                            if (f != Parameters[j].value)
                             {
-                                Parameter.value = (float)f;
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
+                                Parameters[j].value = (float)f;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
                                 continue;
                             }
                         }
 
-                        int? i = AnimatorManager.GetAnimatorParameterInt(Parameter.name);
+                        int? i = AnimatorManager.GetAnimatorParameterInt(Parameters[j].name);
                         if (i != null)
                         {
-                            if (i != (int)Parameter.value)
-                            {                              
-                                Parameter.value = (float)i;
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
+                            if (i != (int)Parameters[j].value)
+                            {
+                                Parameters[j].value = (float)i;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
                                 continue;
                             }
                         }
 
-                        bool? b = AnimatorManager.GetAnimatorParameterBool(Parameter.name);
+                        bool? b = AnimatorManager.GetAnimatorParameterBool(Parameters[j].name);
                         if (b != null)
                         {
-                            if (b != (Parameter.value == 1f))
+                            if (b != (Parameters[j].value == 1f))
                             {
-                                Parameter.value = Convert.ToSingle(b);
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameter.name), OSCServer.VRClient, Parameter.value, true);
+                                Parameters[j].value = Convert.ToSingle(b);
+                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
                                 continue;
                             }
                         }
@@ -103,6 +109,7 @@ namespace CVROSC
                 // Ignore until we find a valid avatar
                 AnimatorManager = null;
                 Parameters = null;
+                MenuInstance = null;
             }
         }
 
@@ -118,14 +125,16 @@ namespace CVROSC
                         string Variable = Address.Substring(Address.LastIndexOf("/") + 1);
                         // MelonLogger.Msg("Received message {0} with data {1}! ({2})", Variable, Data[0], Address);
 
-                        foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
+                        for (int j = 0; j < Parameters.Count; j++)
                         {
-                            if (Parameter.name.Equals(Variable))
+                            if (Parameters[j].name.Equals(Variable))
                             {
-                                Parameter.value = (float)Data;
-                                AnimatorManager.SetAnimatorParameter(Parameter.name, Parameter.value);
+                                Parameters[j].value = (float)Data;
+                                AnimatorManager.SetAnimatorParameter(Parameters[j].name, Parameters[j].value);
+                                // MenuInstance.gameMenuView.View.TriggerEvent("CVRAppActionLoadAvatarSettings");
+                                return;
                             }
-                        }              
+                        }
                     }
                     break;
 

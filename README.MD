@@ -15,6 +15,9 @@ I use OSC myself to display the weather on my wrist. *(And to show it to others 
 - MelonLoader *(come on)*
 - Bespoke.OSC *(https://bitbucket.org/pvarcholik/bespoke.osc)*
 
+### Required NuGet packages
+- Costura for Fody *(https://github.com/Fody/Costura)*
+
 ### Developer note
 This mod is not supported by ABI and nor me nor the mod are in any way affiliated to the company.
 

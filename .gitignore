@@ -1,7 +1,6 @@
-
-
 *.suo
 *.tmp
+/.vs
 /*.dll
 /*.exe
 /*.opensdf
@@ -9,6 +8,9 @@
 /*.suo
 /*.user
 /*.vcxproj.user
-/.vs
+/CVROSC/*.config
+/CVROSC/*.xml
+/CVROSC/*.xsd
 /CVROSC/bin/
 /CVROSC/obj/
+/packages/
