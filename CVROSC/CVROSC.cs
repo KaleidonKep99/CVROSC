@@ -118,11 +118,11 @@ namespace CVROSC
 
                         try
                         {
-                            string TargetDir = String.Format("{0}\\Alpha Blend Interactive\\ChilloutVR\\OSC\\usr_{1}", GetKnownFolderPath(LocalLowFolder), MetaPort.Instance.ownerId);
+                            string TargetDir = String.Format("{0}\\Alpha Blend Interactive\\ChilloutVR\\OSC\\usr_{1}\\Avatars\\", GetKnownFolderPath(LocalLowFolder), MetaPort.Instance.ownerId);
                             if (!System.IO.Directory.Exists(TargetDir))
                                 System.IO.Directory.CreateDirectory(TargetDir);
 
-                            String AvatarPath = String.Format("{0}\\Avatars\\avtr_{1}.json", TargetDir, Config.AvatarGUID);
+                            String AvatarPath = String.Format("{0}\\avtr_{1}.json", TargetDir, Config.AvatarGUID);
                             String JSONData = JsonConvert.SerializeObject(Config, Formatting.Indented);
 
                             System.IO.File.WriteAllText(AvatarPath, JSONData);
