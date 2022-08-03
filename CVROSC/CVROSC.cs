@@ -8,16 +8,26 @@ using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace CVROSC
 {
     public sealed class CVROSCMod : MelonMod
     {
+        [DllImport("shell32.dll")]
+        static extern int SHGetKnownFolderPath([MarshalAs(UnmanagedType.LPStruct)] Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr pszPath);
+
         static VRLayer OSCServer = null;
 
-        const string Base = "/avatar/parameters";
-        static float TAL = -1.0f;
-        static string AvatarGUID = "0";
+        // Bases
+        const string AvatarParamBase = "/avatar/parameters";
+
+        // OSC config
+        static bool Wait = true;
+        static Guid LocalLowFolder = new Guid("A520A1A4-1780-4FF6-BD18-167343C5AF16");
+        static string SavedAvatarGUID = "00000000-0000-0000-0000-000000000000";
         static ViewManager MenuInstance = null;
         static CVRAnimatorManager AnimatorManager = null;
         static List<CVRAdvancedSettingsFileProfileValue> Parameters = null;
@@ -34,10 +44,23 @@ namespace CVROSC
 
             try
             {
-                if (TAL != PlayerSetup.Instance.timeAvatarLoaded || AnimatorManager == null)
+                string CurrentAvatarGUID = MetaPort.Instance.currentAvatarGuid;
+
+                if (!SavedAvatarGUID.Equals(CurrentAvatarGUID) || AnimatorManager == null)
                 {
-                    if (TAL != PlayerSetup.Instance.timeAvatarLoaded)
-                        MelonLogger.Msg(String.Format("Avatar change detected, loading animation manager... (OT{0}, NT{1})", TAL, PlayerSetup.Instance.timeAvatarLoaded));
+                    SavedAvatarGUID = CurrentAvatarGUID;
+
+                    Wait = true;
+
+                    if (!SavedAvatarGUID.Equals(CurrentAvatarGUID) && AnimatorManager == null)
+                    {
+                        MelonLogger.Msg(String.Format("Avatar change detected, loading animation manager... ({0})", CurrentAvatarGUID));
+                        MelonLogger.Msg(String.Format("OLD: {0}, NEW: {1}", SavedAvatarGUID, CurrentAvatarGUID));
+                    }
+
+                    if (PlayerSetup.Instance.animatorManager == null)
+                        // Wait for the game to initialize the animator manager
+                        return;
 
                     if (AnimatorManager == null)
                         AnimatorManager = PlayerSetup.Instance.animatorManager;
@@ -47,24 +70,97 @@ namespace CVROSC
 
                     Parameters = AnimatorManager.GetAdditionalSettingsCurrent();
 
-                    TAL = PlayerSetup.Instance.timeAvatarLoaded;
-                    AvatarGUID = MetaPort.Instance.currentAvatarGuid;
+                    MelonLogger.Msg(String.Format("Animation manager found and cached for {0}, {1} parameters found!", SavedAvatarGUID, Parameters.Count));
 
-                    MelonLogger.Msg(String.Format("Animation manager found and cached, {0} parameters found!", Parameters.Count));
+                    OSCConfig Config = new OSCConfig();
+
+                    Config.AvatarParameters = new List<OSCParameter>();
+                    Config.AvatarName = "unknown";
+                    Config.AvatarGUID = SavedAvatarGUID;
 
                     if (Parameters.Count > 0)
                     {
-                        MelonLogger.Msg(String.Format("Scanning parameters for {0}...", AvatarGUID));
+                        MelonLogger.Msg(String.Format("Scanning parameters for {0}...", Config.AvatarGUID));
 
-                        foreach (CVRAdvancedSettingsFileProfileValue Parameter in Parameters)
-                            MelonLogger.Msg(String.Format("Parameter {0}: {1}", Parameter.name, Parameter.value));
+                        for (int i = 0; i < Parameters.Count; i++)
+                        {
+                            OSCParameter AP = null;
+
+                            switch (Parameters[i].value)
+                            {
+                                case float f:
+                                    AP = new OSCParameter();
+                                    AP.Input = new OSCAddress();
+                                    AP.Output = new OSCAddress();
+
+                                    AP.ParameterName = Parameters[i].name;
+
+                                    AP.Input.ParameterAddress = AP.Output.ParameterAddress = String.Format("{0}/{1}", AvatarParamBase, Parameters[i].name);
+                                    AP.Input.ParameterType = AP.Output.ParameterType = "Float";
+
+                                    break;
+
+                                    //case bool b:
+                                    //    AP.Input.ParameterType = AP.Output.ParameterType = "Bool";
+                                    //    break;
+
+                                    //case int i:
+                                    //    AP.Input.ParameterType = AP.Output.ParameterType = "Int";
+                                    //    break;
+                            }
+
+                            if (AP != null)
+                            {
+                                Config.AvatarParameters.Add(AP);
+                                MelonLogger.Msg(String.Format("Parameter {0} ({1}): {2}", AP.Input.ParameterAddress, AP.Input.ParameterType, Parameters[i].value));
+                            }
+                        }
+
+                        try
+                        {
+                            string TargetDir = String.Format("{0}\\Alpha Blend Interactive\\ChilloutVR\\OSC\\usr_{1}", GetKnownFolderPath(LocalLowFolder), MetaPort.Instance.ownerId);
+                            if (!System.IO.Directory.Exists(TargetDir))
+                                System.IO.Directory.CreateDirectory(TargetDir);
+
+                            String Path = String.Format("{0}\\avtr_{1}.json", TargetDir, Config.AvatarGUID);
+                            String JSONData = JsonConvert.SerializeObject(Config, Formatting.Indented);
+
+                            System.IO.File.WriteAllText(Path, JSONData);
+
+                            MelonLogger.Msg(String.Format("JSON written to \"{0}\"", Path));
+                        }
+                        catch (Exception ex)
+                        {
+                            MelonLogger.Error(ex.ToString());
+                        }
 
                         MelonLogger.Msg("The new animation manager is now ready to be controlled through Open Sound Control.");
                     }
 
-                    OSCServer.SendMsg("/avatar/change", OSCServer.VRClient, AvatarGUID, true);
-                }
+                    OSCServer.SendMsg("/avatar/change", OSCServer.VRClient, Config.AvatarGUID, true);
 
+                    Wait = false;
+                }
+            }
+            catch
+            {
+                MenuInstance = null;
+                AnimatorManager = null;
+                Parameters = null;
+
+                Wait = true;
+            }
+
+            Task.Run(() => GetParameters());
+        }
+
+        static void GetParameters()
+        {
+            if (Wait)
+                return;
+
+            try
+            {
                 if (AnimatorManager != null && Parameters != null)
                 {
                     for (int j = 0; j < Parameters.Count; j++)
@@ -75,8 +171,7 @@ namespace CVROSC
                             if (f != Parameters[j].value)
                             {
                                 Parameters[j].value = (float)f;
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
-                                continue;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", AvatarParamBase, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
                             }
                         }
 
@@ -86,8 +181,7 @@ namespace CVROSC
                             if (i != (int)Parameters[j].value)
                             {
                                 Parameters[j].value = (float)i;
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
-                                continue;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", AvatarParamBase, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
                             }
                         }
 
@@ -97,19 +191,21 @@ namespace CVROSC
                             if (b != (Parameters[j].value == 1f))
                             {
                                 Parameters[j].value = Convert.ToSingle(b);
-                                OSCServer.SendMsg(String.Format("{0}/{1}", Base, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
-                                continue;
+                                OSCServer.SendMsg(String.Format("{0}/{1}", AvatarParamBase, Parameters[j].name), OSCServer.VRClient, Parameters[j].value, true);
                             }
                         }
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore until we find a valid avatar
+                MelonLogger.Error(ex.ToString());
+
+                MenuInstance = null;
                 AnimatorManager = null;
                 Parameters = null;
-                MenuInstance = null;
+
+                System.Threading.Thread.Sleep(1000);
             }
         }
 
@@ -120,22 +216,23 @@ namespace CVROSC
                 case bool b:
                 case int i:
                 case float f:
-                    if (Address.StartsWith("/avatar/parameters"))
+                    if (Address.StartsWith(AvatarParamBase))
                     {
-                        string Variable = Address.Substring(Address.LastIndexOf("/") + 1);
+                        string Variable = Address.Replace(AvatarParamBase, "");
                         // MelonLogger.Msg("Received message {0} with data {1}! ({2})", Variable, Data[0], Address);
 
                         for (int j = 0; j < Parameters.Count; j++)
                         {
                             if (Parameters[j].name.Equals(Variable))
                             {
-                                Parameters[j].value = (float)Data;
+                                Parameters[j].value = Convert.ToSingle(Data);
                                 AnimatorManager.SetAnimatorParameter(Parameters[j].name, Parameters[j].value);
                                 // MenuInstance.gameMenuView.View.TriggerEvent("CVRAppActionLoadAvatarSettings");
                                 return;
                             }
                         }
                     }
+
                     break;
 
                 default:
@@ -178,6 +275,25 @@ namespace CVROSC
         static void MessageF(object sender, OscMessageReceivedEventArgs Var)
         {
             AnalyzeData(sender, Var.Message.SourceEndPoint, Var.Message.Address, Var.Message);
+        }
+
+        static string GetKnownFolderPath(Guid KnownFolderID)
+        {
+            IntPtr pszPath = IntPtr.Zero;
+            try
+            {
+                int HResult = SHGetKnownFolderPath(KnownFolderID, 0, IntPtr.Zero, out pszPath);
+
+                if (HResult >= 0)
+                    return Marshal.PtrToStringAuto(pszPath);
+
+                throw Marshal.GetExceptionForHR(HResult);
+            }
+            finally
+            {
+                if (pszPath != IntPtr.Zero)
+                    Marshal.FreeCoTaskMem(pszPath);
+            }
         }
     }
 }
