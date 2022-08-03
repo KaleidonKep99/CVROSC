@@ -14,6 +14,7 @@ I use OSC myself to display the weather on my wrist. *(And to show it to others 
 - UnityEngine.CoreModule *(from ChilloutVR's directory)*
 - MelonLoader *(come on)*
 - Bespoke.OSC *(https://bitbucket.org/pvarcholik/bespoke.osc)*
+- Newtonsoft.Json *(https://www.newtonsoft.com/json)*
 
 ### Required NuGet packages
 - Costura for Fody *(https://github.com/Fody/Costura)*
