@@ -122,12 +122,12 @@ namespace CVROSC
                             if (!System.IO.Directory.Exists(TargetDir))
                                 System.IO.Directory.CreateDirectory(TargetDir);
 
-                            String Path = String.Format("{0}\\avtr_{1}.json", TargetDir, Config.AvatarGUID);
+                            String AvatarPath = String.Format("{0}\\Avatars\\avtr_{1}.json", TargetDir, Config.AvatarGUID);
                             String JSONData = JsonConvert.SerializeObject(Config, Formatting.Indented);
 
-                            System.IO.File.WriteAllText(Path, JSONData);
+                            System.IO.File.WriteAllText(AvatarPath, JSONData);
 
-                            MelonLogger.Msg(String.Format("JSON written to \"{0}\"", Path));
+                            MelonLogger.Msg(String.Format("JSON written to \"{0}\"", AvatarPath));
                         }
                         catch (Exception ex)
                         {
